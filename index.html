@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>文字互动 · 角色扮演</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: #1e1e2f;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header {
+            background: #2a2a3e;
+            padding: 12px 16px;
+            color: white;
+            border-bottom: 1px solid #3a3a4e;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .icon-btn {
+            background: #3a3a4e;
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .role-badge {
+            background: #3a3a4e;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .my-role {
+            color: #6c5ce7;
+        }
+        .ai-role {
+            color: #fd79a8;
+        }
+        .edit-btn {
+            background: #6c5ce7;
+            border: none;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            max-width: 90%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            line-height: 1.45;
+            font-size: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background: #6c5ce7;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .ai-message {
+            background: #2a2a3e;
+            color: #eee;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .system-message {
+            background: #3a3a4e;
+            color: #aaa;
+            align-self: center;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            max-width: 80%;
+            text-align: center;
+        }
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background: #888;
+            border-radius: 50%;
+            animation: blink 1.4s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        .input-area {
+            background: #2a2a3e;
+            padding: 12px 16px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border-top: 1px solid #3a3a4e;
+        }
+        textarea {
+            flex: 1;
+            background: #3a3a4e;
+            border: none;
+            border-radius: 24px;
+            padding: 10px 16px;
+            font-size: 15px;
+            font-family: inherit;
+            color: white;
+            resize: none;
+            outline: none;
+        }
+        textarea::placeholder {
+            color: #888;
+        }
+        button {
+            background: #6c5ce7;
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 30px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        button:active { opacity: 0.7; }
+        .status-bar {
+            background: #2a2a3e;
+            padding: 6px 16px;
+            font-size: 11px;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #3a3a4e;
+        }
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #2a2a3e;
+            overflow-x: auto;
+        }
+        .quick-btn {
+            background: #3a3a4e;
+            border: none;
+            color: #ddd;
+            padding: 5px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-top">
+        <span class="header-title">🎭 文字互动 · 角色扮演</span>
+        <div class="header-buttons">
+            <button class="icon-btn" id="clearBtn" title="清空对话">🗑️</button>
+            <button class="icon-btn" id="configBtn" title="修改API Key">🔑</button>
+        </div>
+    </div>
+    <div class="role-badge">
+        <span>🎭 你：<span class="my-role" id="myRoleName">未设定</span></span>
+        <span>🤖 AI：<span class="ai-role" id="aiRoleName">未设定</span></span>
+        <button class="edit-btn" id="editRoleBtn">✏️ 设定角色</button>
+    </div>
+</div>
+
+<div class="quick-actions">
+    <button class="quick-btn" id="continueBtn">⏩ 继续</button>
+    <button class="quick-btn" id="actionOnlyBtn">🎬 只写动作</button>
+    <button class="quick-btn" id="showSettingBtn">📜 看设定</button>
+</div>
+
+<div class="chat-container" id="chatContainer">
+    <div class="message system-message">
+        🎭 文字互动角色扮演<br><br>
+        点击「设定角色」开始，告诉AI：<br>
+        • 你扮演什么角色<br>
+        • AI扮演什么角色<br>
+        • 故事背景（可选）<br><br>
+        格式示例：<br>
+        （轻轻拉住她的手）别走。<br>
+        或者直接说对话。
+    </div>
+</div>
+
+<div class="input-area">
+    <textarea id="userInput" placeholder="输入对话或动作，比如：（叹气）好吧... 或 你到底想怎样？" rows="1"></textarea>
+    <button id="sendBtn">➤</button>
+</div>
+<div class="status-bar">
+    <span>🎭 互动模式</span>
+    <span>💾 自动保存</span>
+</div>
+
+<script>
+    // ========== 配置 ==========
+    let API_KEY = localStorage.getItem('deepseek_api_key');
+    const API_URL = 'https://api.deepseek.com/chat/completions';
+    
+    // 角色设定
+    let roleConfig = {
+        myRole: '我',
+        myRoleDesc: '',
+        aiRole: '对方',
+        aiRoleDesc: '',
+        worldSetting: ''
+    };
+    
+    // 加载设定
+    function loadRoleConfig() {
+        const saved = localStorage.getItem('rp_interact_config');
+        if (saved) {
+            roleConfig = JSON.parse(saved);
+            updateRoleDisplay();
+        }
+    }
+    
+    function saveRoleConfig() {
+        localStorage.setItem('rp_interact_config', JSON.stringify(roleConfig));
+        updateRoleDisplay();
+    }
+    
+    function updateRoleDisplay() {
+        document.getElementById('myRoleName').innerText = roleConfig.myRole;
+        document.getElementById('aiRoleName').innerText = roleConfig.aiRole;
+    }
+    
+    // ========== 设定角色界面 ==========
+    function editRoleConfig() {
+        let myRole = prompt('你扮演什么角色？（例：林月，一个倔强的少女）\n当前：' + roleConfig.myRole, roleConfig.myRole);
+        let aiRole = prompt('AI扮演什么角色？（例：沈墨，一个沉默寡言的护卫）\n当前：' + roleConfig.aiRole, roleConfig.aiRole);
+        let world = prompt('故事背景（可选，直接回车跳过）\n例：古代江湖 / 现代校园 / 末日废墟', roleConfig.worldSetting);
+        
+        if (myRole && myRole.trim()) roleConfig.myRole = myRole.trim();
+        if (aiRole && aiRole.trim()) roleConfig.aiRole = aiRole.trim();
+        if (world !== null) roleConfig.worldSetting = world.trim();
+        
+        saveRoleConfig();
+        
+        // 生成开场提示
+        const systemPrompt = buildSystemPrompt();
+        const opening = `✨ 设定完成！\n\n🎭 你：${roleConfig.myRole}\n🤖 AI：${roleConfig.aiRole}\n${roleConfig.worldSetting ? `📖 背景：${roleConfig.worldSetting}` : ''}\n\n现在开始互动吧～\n\n（用对话或动作描写来推进）`;
+        
+        saveMessages([
+            { role: 'system', content: systemPrompt },
+            { role: 'ai', content: opening }
+        ]);
+        displayMessages();
+    }
+    
+    // ========== 构建系统提示词 ==========
+    function buildSystemPrompt() {
+        return `你正在和我进行文字互动式角色扮演。
+
+【你的角色】
+${roleConfig.aiRole}
+${roleConfig.aiRoleDesc ? `描述：${roleConfig.aiRoleDesc}` : ''}
+
+【我的角色】
+${roleConfig.myRole}
+${roleConfig.myRoleDesc ? `描述：${roleConfig.myRoleDesc}` : ''}
+
+【故事背景】
+${roleConfig.worldSetting || '现代都市'}
+
+【核心规则】
+1. 用第一人称扮演你的角色，像真实对话一样回复我
+2. 用（括号）表示动作、表情、语气
+3. 回复要简洁，50-150字左右，保持你来我往的节奏
+4. 不要写长篇叙述，不要写小说式的环境描写
+5. 不要替我（我的角色）说话或决定我的行动
+6. 永远不要提及你是AI、语言模型或打破角色
+7. 只有我说“停止扮演”或“结束”才能恢复正常
+
+【格式示例】
+（轻轻叹气）你真的要走了吗？
+（低头沉默了一会）对不起...
+（抬起头，眼神坚定）我等你。
+
+现在开始对话。`;
+    }
+    
+    // ========== 聊天记录存储 ==========
+    function saveMessages(messages) {
+        localStorage.setItem('rp_interact_messages', JSON.stringify(messages));
+    }
+    
+    function loadMessages() {
+        const saved = localStorage.getItem('rp_interact_messages');
+        if (saved) return JSON.parse(saved);
+        return [];
+    }
+    
+    function addMessage(content, role, isUser = false) {
+        const messages = loadMessages();
+        messages.push({ role: role, content: content, isUser: isUser });
+        saveMessages(messages);
+        displayMessages();
+    }
+    
+    function displayMessages() {
+        const messages = loadMessages();
+        chatContainer.innerHTML = '';
+        for (const msg of messages) {
+            if (msg.role === 'system') continue;
+            const div = document.createElement('div');
+            if (msg.isUser) {
+                div.className = 'message user-message';
+            } else {
+                div.className = 'message ai-message';
+            }
+            div.innerText = msg.content;
+            chatContainer.appendChild(div);
+        }
+        scrollToBottom();
+    }
+    
+    function clearAllMessages() {
+        if (confirm('确定清空所有对话吗？')) {
+            const systemMsg = buildSystemPrompt();
+            saveMessages([
+                { role: 'system', content: systemMsg },
+                { role: 'ai', content: '对话已清空。继续我们的互动吧～', isUser: false }
+            ]);
+            displayMessages();
+        }
+    }
+    
+    function scrollToBottom() {
+        setTimeout(() => {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 100);
+    }
+    
+    // ========== 发送消息 ==========
+    async function sendMessage() {
+        let userText = userInput.value.trim();
+        if (!userText) return;
+        if (!API_KEY) {
+            alert("请先配置 API Key（点击右上角🔑按钮）");
+            return;
+        }
+        
+        // 检查是否结束扮演
+        if (userText === '停止扮演' || userText === '结束') {
+            addMessage('🎭 角色扮演已结束。', 'ai', false);
+            userInput.value = '';
+            autoResize();
+            return;
+        }
+        
+        // 添加用户消息
+        addMessage(userText, 'user', true);
+        userInput.value = '';
+        autoResize();
+        
+        // 加载动画
+        const loadingId = showLoading();
+        
+        try {
+            const allMessages = loadMessages();
+            const systemMsg = allMessages.find(m => m.role === 'system');
+            const recentMessages = allMessages.filter(m => m.role !== 'system').slice(-12);
+            
+            let apiMessages = [];
+            if (systemMsg) {
+                apiMessages.push({ role: 'system', content: systemMsg.content });
+            } else {
+                apiMessages.push({ role: 'system', content: buildSystemPrompt() });
+            }
+            
+            for (const msg of recentMessages) {
+                apiMessages.push({
+                    role: msg.isUser ? 'user' : 'assistant',
+                    content: msg.content
+                });
+            }
+            
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: apiMessages,
+                    stream: false,
+                    max_tokens: 800,
+                    temperature: 0.9
+                })
+            });
+            
+            removeLoading(loadingId);
+            
+            if (!response.ok) {
+                let errorMsg = `请求失败 (${response.status})`;
+                if (response.status === 401) errorMsg = "API Key 无效";
+                if (response.status === 429) errorMsg = "额度不足或请求太频繁";
+                addMessage(errorMsg, 'ai', false);
+                return;
+            }
+            
+            const data = await response.json();
+            const reply = data.choices[0].message.content;
+            addMessage(reply, 'ai', false);
+            
+        } catch (error) {
+            removeLoading(loadingId);
+            addMessage("网络错误，请检查网络后重试。", 'ai', false);
+        }
+    }
+    
+    function showLoading() {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message ai-message';
+        loadingDiv.id = 'loading_' + Date.now();
+        loadingDiv.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+        chatContainer.appendChild(loadingDiv);
+        scrollToBottom();
+        return loadingDiv.id;
+    }
+    
+    function removeLoading(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+    }
+    
+    function autoResize() {
+        userInput.style.height = 'auto';
+        userInput.style.height = Math.min(userInput.scrollHeight, 80) + 'px';
+    }
+    
+    // ========== 快捷操作 ==========
+    function continueRoleplay() {
+        userInput.value = '（继续）';
+        sendMessage();
+    }
+    
+    function actionOnly() {
+        userInput.value = '（请只用动作和表情回应，不说话）';
+        sendMessage();
+    }
+    
+    function showSetting() {
+        const setting = `📜 【当前设定】
+🎭 你：${roleConfig.myRole}
+🤖 AI：${roleConfig.aiRole}
+${roleConfig.worldSetting ? `📖 背景：${roleConfig.worldSetting}` : ''}
+
+💡 想修改设定？点击「设定角色」按钮`;
+        addMessage(setting, 'ai', false);
+    }
+    
+    // ========== API Key 管理 ==========
+    function setupAPIKey() {
+        const newKey = prompt("请输入 DeepSeek API Key (以 sk- 开头):", API_KEY);
+        if (newKey && newKey.startsWith('sk-')) {
+            API_KEY = newKey;
+            localStorage.setItem('deepseek_api_key', API_KEY);
+            alert("API Key 已保存！");
+        } else if (newKey) {
+            alert("Key 格式错误（需 sk- 开头）");
+        }
+    }
+    
+    // ========== 初始化 ==========
+    function init() {
+        if (!API_KEY) {
+            setTimeout(() => {
+                setupAPIKey();
+            }, 500);
+        }
+        
+        loadRoleConfig();
+        
+        const messages = loadMessages();
+        if (messages.length === 0) {
+            const systemMsg = buildSystemPrompt();
+            saveMessages([
+                { role: 'system', content: systemMsg },
+                { role: 'ai', content: '🎭 文字互动角色扮演\n\n点击「设定角色」开始吧～', isUser: false }
+            ]);
+        }
+        displayMessages();
+        
+        document.getElementById('clearBtn').onclick = clearAllMessages;
+        document.getElementById('configBtn').onclick = setupAPIKey;
+        document.getElementById('editRoleBtn').onclick = editRoleConfig;
+        document.getElementById('sendBtn').onclick = sendMessage;
+        document.getElementById('continueBtn').onclick = continueRoleplay;
+        document.getElementById('actionOnlyBtn').onclick = actionOnly;
+        document.getElementById('showSettingBtn').onclick = showSetting;
+        
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        userInput.addEventListener('input', autoResize);
+    }
+    
+    init();
+</script>
+</body>
+</html>
